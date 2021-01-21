@@ -1,5 +1,12 @@
 from copy import deepcopy
 
+#---- for python 3 ------#
+'''
+from numpy import *
+from pylab import *
+import microstructure as mStr
+'''
+#--------------------#
 
 # barchette da 15 um
 #barchette=arrange_barchette(vela_size=[2.,15.,5.],R_vela=None)
@@ -195,17 +202,17 @@ def make_barchetta_double(vela_size=array([2.,15.,5.]),support_size = array([2.,
 
 
 
-def make_barchetta(vela_size=array([2.,15.,6.]),support_size = array([2.,2.,2.]),inverted=True ,R_vela=None,speed=100.,xyres=0.25,zres=0.9):
+def make_barchetta(vela_size=array([2.,15.,7.]),support_size = array([2.,2.,2.]),inverted=True ,R_vela=None,speed=100.,xyres=0.25,zres=0.9):
 
     #structure properties
      # width,depth,height
 
 #    dondolo_size =array([6.,support_size[1]+0.25,1.5]) # commented 11.1
-    dondolo_size =array([6.,0.5,.5])       # dondolo is a single line # added 11.1
+    dondolo_size =array([6.,1.25,0.5])       # dondolo is a single line # added 11.1
 
     #piezo properties
-    zoffset=4. # times zres 
-    feetspace=1.6  # the real one is this value - 0.7
+    zoffset=4. # times zres
+    feetspace=zres  # the real one is this value - 0.7
 
 
 
@@ -347,7 +354,7 @@ def make_vela_tonda(vela_size=array([1.,10.,5.]),R=10.,support_size=array([1.,1.
 
 def make_dondolo(rstart=10.,R=12.,speed=100.,xyres=0.25,zres=0.9,width=1.,phi_max=30.,scanmode=0,phi_min=None):
     """use scanmode==1 to avoid shape deformation with large phires"""
-    
+
     phi_max_rad=phi_max/180*pi
 
     if phi_min is not None:
@@ -355,7 +362,9 @@ def make_dondolo(rstart=10.,R=12.,speed=100.,xyres=0.25,zres=0.9,width=1.,phi_ma
 
     dondolo=array([[],[],[]]).transpose()
     cc=0
-    for r in linspace(rstart,R,int(((R-rstart)/zres)+1)):
+    rs = arange(rstart,R,zres)
+    rs = rs + (R-rs[-1]) # radius must be corrected for aving a final R
+    for r in rs:
         tres=xyres
 
         phiN=int(round(2*phi_max_rad/(tres/r)))+1
@@ -368,12 +377,12 @@ def make_dondolo(rstart=10.,R=12.,speed=100.,xyres=0.25,zres=0.9,width=1.,phi_ma
                 phi1=linspace(-phi_max_rad,phi_min_rad,phiN)[:-1]
                 phi2=linspace(phi_min_rad,phi_max_rad,phiN)[:-1]
                 phi=deepcopy(phi1)
-                
+
         else:
             phi=linspace(-phi_max_rad,phi_max_rad,phiN)
 
         x=sin(phi)*r
-        z=R+zres/4-cos(phi)*r
+        z=R-cos(phi)*r
         y=z*0
 
         if (scanmode==1):
