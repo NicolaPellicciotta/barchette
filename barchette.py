@@ -1,0 +1,480 @@
+from copy import deepcopy
+
+
+# barchette da 15 um
+#barchette=arrange_barchette(vela_size=[2.,15.,5.],R_vela=None)
+#R_vela=30,16,11,9
+
+#barchette=arrange_barchette(vela_size=[2.,20.,5.],R_vela=None)
+#R_vela=12.,20.,None
+
+
+
+# 3 types of barchette, a flat, a medium and a very curved
+# barchette to try
+#barchette_tonde_M=arrange_barchette(vela_size=[2.,15.,5.],support_size=[2.,2.,2.],velatype='tonda',R_vela=12.)
+
+#barchette_tonde_L=arrange_barchette(vela_size=[2.,20.,5.],support_size=[2.,2.,2.],velatype='tonda',R_vela=15.)
+
+#barchetta_piatta_L=arrange_barchette(vela_size=[3.,20.,5.],support_size=[2.,2.,2.])
+#barchetta_piatta_M=arrange_barchette(vela_size=[3.,15.,5.],support_size=[2.,2.,2.])
+
+
+
+exec(open("lineposgenerator.py").read())
+
+
+def arrange_many_barchette(vela_size=array([2.,15.,7.]),support_size = array([2.,2.,1.]),Dr=65,speed=100.,xyres=0.25,zres=0.9):
+
+
+    N= floor(200./Dr)
+    Xc,Yc=placeReplicas(3,4,Dr,Dr,direction=1,shift=False)
+    barchette=None
+#    bR30=make_barchetta_double(vela_size=vela_size,R_vela=30)
+#    bR16=make_barchetta_double(vela_size=vela_size,R_vela=16)
+#    bR11=make_barchetta_double(vela_size=vela_size,R_vela=11)
+#    bR9=make_barchetta_double(vela_size=vela_size,R_vela=9)
+#    bRinf=make_barchetta_double(vela_size=vela_size,R_vela=None)
+
+    bR30=make_barchetta(vela_size=vela_size,R_vela=30)
+    bR16=make_barchetta(vela_size=vela_size,R_vela=16)
+    bR11=make_barchetta(vela_size=vela_size,R_vela=11)
+    bR9=make_barchetta(vela_size=vela_size,R_vela=9)
+    bRinf=make_barchetta(vela_size=vela_size,R_vela=None)
+
+    bb= [bR30,bR16,bR11,bR9,bR9,bR11,bR16,bR30,bR30,bRinf,bRinf,bRinf]
+    for i in arange(len(Xc)):
+        temp=deepcopy(bb[i])
+#        temp=make_barchetta_double(vela_size=vela_size,support_size=support_size,inverted=inverted,R_vela=R_vela,speed=speed,xyres=xyres,zres=zres)
+#        temp=make_barchetta_double(vela_size=vela_size,support_size=support_size,R_vela=R_vela,speed=speed,xyres=xyres,zres=zres)
+        temp.shift([Xc[i],Yc[i],0])
+        if barchette is None:
+            barchette=deepcopy(temp)
+        else:
+            barchette.addStr(temp)
+    figure();barchette.plot2D([0,1],plotmode=1)
+    figure();barchette.plot2D([0,2],plotmode=1)
+    figure();barchette.plot2D([1,2],plotmode=1);
+
+    return barchette
+
+
+def arrange_barchette(vela_size=array([2.,15.,10.]),support_size = array([2.,2.,3.]),Dr=65,inverted=True,R_vela=None,speed=100.,xyres=0.25,zres=0.9):
+
+
+    N= floor(200./Dr)
+    Xc,Yc=placeReplicas(3,4,Dr,Dr,direction=1,shift=False)
+    barchette=None
+
+    for i in arange(len(Xc)):
+
+#        temp=make_barchetta_double(vela_size=vela_size,support_size=support_size,inverted=inverted,R_vela=R_vela,speed=speed,xyres=xyres,zres=zres)
+        temp=make_barchetta_double(vela_size=vela_size,support_size=support_size,R_vela=R_vela,speed=speed,xyres=xyres,zres=zres)
+
+        temp.shift([Xc[i],Yc[i],0])
+        if barchette is None:
+            barchette=deepcopy(temp)
+        else:
+            barchette.addStr(temp)
+    figure();barchette.plot2D([0,1],plotmode=1)
+    figure();barchette.plot2D([0,2],plotmode=1)
+    figure();barchette.plot2D([1,2],plotmode=1);
+
+    return barchette
+
+####---------------------------------------------------------------------
+
+def make_barchetta_double(vela_size=array([2.,15.,5.]),support_size = array([2.,2.,2.]),R_vela=None,speed=100.,xyres=0.25,zres=0.9):
+
+    #structure properties
+     # width,depth,height
+
+    dondolo_size =array([6.,support_size[1],1.5])
+
+    #piezo properties
+    zoffset=3.
+
+
+
+    R_dondolo= support_size[2]+vela_size[2]+dondolo_size[2]+6.
+
+    #make dondoli
+
+    dondolo_1= make_dondolo(rstart=R_dondolo-dondolo_size[2],R=R_dondolo,speed=speed,xyres=xyres,zres=zres,width=dondolo_size[1],phi_max=45.)
+    dondolo_2=deepcopy(dondolo_1)
+    dondolo_2.shift([0,vela_size[1]-dondolo_size[1],0])
+
+    #---------make bottom supports
+
+
+    nlz=round((support_size[2]+zoffset+1.)/zres)
+    nlx=round(support_size[0]/xyres)
+    nly=round(support_size[1]/xyres)
+
+
+    lineE=array([[-support_size[0]/2,0,-zoffset],[-support_size[0]/2,support_size[1]-xyres,-zoffset]]) # single line
+
+    fillcol=mStr.lineReplicate2D(lineE,nlx,xyres,0)
+    fillcol=mStr.lineReplicate2D(fillcol[:,0:3],nlz,zres,2)
+    fillcol[-1,3:5]=array([0,speed])
+    support_1=mStr.MicroStr(fillcol)
+#    fillcol.shift([0,0,-( ((int(nl)+h_corr)*zres) -(height-(zres/2)) )]) # this should place the channel at the right height
+    support_2=deepcopy(support_1)
+    support_2.shift([0,vela_size[1]-support_size[1],0])
+
+    #---------make top supports
+
+
+    nlz=round((support_size[2]+1.)/zres) # i need to think about it
+    nlx=round(support_size[0]/xyres)
+    nly=round(support_size[1]/xyres)
+
+
+    lineE=array([[-support_size[0]/2,0,vela_size[2]+support_size[2]-1],[-support_size[0]/2,support_size[1]-xyres,vela_size[2]+support_size[2]-1]]) # single line
+
+    fillcol=mStr.lineReplicate2D(lineE,nlx,xyres,0)
+    fillcol=mStr.lineReplicate2D(fillcol[:,0:3],nlz,zres,2)
+    fillcol[-1,3:5]=array([0,speed])
+    support_top_1=mStr.MicroStr(fillcol)
+#    fillcol.shift([0,0,-( ((int(nl)+h_corr)*zres) -(height-(zres/2)) )]) # this should place the channel at the right height
+    support_top_2=deepcopy(support_top_1)
+    support_top_2.shift([0,vela_size[1]-support_size[1],0])
+
+
+    #-----------make vela
+    if R_vela==None:
+
+        nlz=round((vela_size[2])/zres)
+        nlx=round(vela_size[0]/xyres)
+        nly=round(vela_size[1]/xyres)
+
+        # the width of the vela is 2 times the distance between the supports
+        lineE=array([[-vela_size[0]/2,-vela_size[1]*1/2,support_size[2]],[-vela_size[0]/2,vela_size[1]*3/2-xyres,support_size[2]]]) # single line
+        fillcol=mStr.lineReplicate2D(lineE,nlx,xyres,0)
+        fillcol=mStr.lineReplicate2D(fillcol[:,0:3],nlz,zres,2)
+        fillcol[-1,3:5]=array([0,speed])
+        vela=mStr.MicroStr(fillcol)
+
+
+    else:
+
+        vela,dx=make_vela_tonda(vela_size=vela_size,R=R_vela,support_size=support_size,speed=speed,xyres=xyres,zres=zres)
+        vela.shift([0,vela_size[1]/2,support_size[2]])
+        support_1.shift([dx,0,0])
+        support_2.shift([dx,0,0])
+    ##
+
+    barchetta=deepcopy(dondolo_1)
+    barchetta.addStr(dondolo_2)
+    barchetta.addStr(support_1)
+    barchetta.addStr(support_2)
+    barchetta.addStr(support_top_1)
+    barchetta.addStr(support_top_2)
+    barchetta.addStr(vela)
+    dondolo_1.shift([0,0,-(vela_size[2]+support_size[2]+dondolo_size[2]) ] )
+    dondolo_2.shift([0,0,-(vela_size[2]+support_size[2]+dondolo_size[2]) ] )
+    dondolo_1.rotate(180,'y')
+    dondolo_2.rotate(180,'y')
+    barchetta.addStr(dondolo_1)
+    barchetta.addStr(dondolo_2)
+
+    barchetta.shift([0,0,-0.2])
+#    if inverted==True:
+#        barchetta.rotate(180,'y')
+#        miny= min(barchetta.Strokes[-1].coors[:,2])
+#        barchetta.shift([0,0,-miny-2*zres])
+    return barchetta
+
+###-----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+def make_barchetta(vela_size=array([2.,15.,6.]),support_size = array([2.,2.,2.]),inverted=True ,R_vela=None,speed=100.,xyres=0.25,zres=0.9):
+
+    #structure properties
+     # width,depth,height
+
+#    dondolo_size =array([6.,support_size[1]+0.25,1.5]) # commented 11.1
+    dondolo_size =array([6.,0.5,.5])       # dondolo is a single line # added 11.1
+
+    #piezo properties
+    zoffset=4. # times zres 
+    feetspace=1.6  # the real one is this value - 0.7
+
+
+
+    R_dondolo= support_size[2]+vela_size[2]+dondolo_size[2]+10.
+
+    #make dondoli
+
+    dondolo_1= make_dondolo(rstart=R_dondolo-dondolo_size[2],R=R_dondolo,speed=speed,xyres=xyres,zres=zres,width=dondolo_size[1],phi_max=30.)
+    dondolo_2=deepcopy(dondolo_1)
+    dondolo_2.shift([0,vela_size[1]-dondolo_size[1],0])
+
+    #make supports
+
+    if inverted==True:
+        nlz=round((support_size[2])/zres)
+    else:
+        nlz=round((support_size[2]+zoffset+1.)/zres)
+    nlx=round(support_size[0]/xyres)
+    nly=round(support_size[1]/xyres)
+
+
+    if inverted==True:
+#        lineE=array([[-support_size[0]/2,0,zres/2],[-support_size[0]/2,support_size[1]-xyres,zres/2]]) # single line
+        lineE=array([[-support_size[0]/2,0,dondolo_size[2]],[-support_size[0]/2,support_size[1]-xyres,dondolo_size[2]]]) # single line
+    else:
+        lineE=array([[-support_size[0]/2,0,-zoffset],[-support_size[0]/2,support_size[1]-xyres,-zoffset]]) # single line
+
+    fillcol=mStr.lineReplicate2D(lineE,nlx,xyres,0)
+    fillcol=mStr.lineReplicate2D(fillcol[:,0:3],nlz,zres,2)
+    fillcol[-1,3:5]=array([0,speed])
+    support_1=mStr.MicroStr(fillcol)
+#    fillcol.shift([0,0,-( ((int(nl)+h_corr)*zres) -(height-(zres/2)) )]) # this should place the channel at the right height
+    support_2=deepcopy(support_1)
+    support_2.shift([0,vela_size[1]-support_size[1],0])
+
+
+    #make vela
+    if R_vela==None:
+
+        nlz=round((vela_size[2])/zres)
+        nlx=round(vela_size[0]/xyres)
+        nly=round(vela_size[1]/xyres)
+
+        # the width of the vela is 2 times the distance between the supports
+# 11.8        lineE=array([[-vela_size[0]/2,-vela_size[1]*1/2,support_size[2]],[-vela_size[0]/2,vela_size[1]*3/2-xyres,support_size[2]]]) # single line
+
+        lineE=array([[-vela_size[0]/2,-vela_size[1]*1/2,feetspace],[-vela_size[0]/2,vela_size[1]*3/2-xyres,feetspace]]) # single line
+
+        fillcol=mStr.lineReplicate2D(lineE,nlx,xyres,0)
+        fillcol=mStr.lineReplicate2D(fillcol[:,0:3],nlz+int(zoffset),zres,2)
+        fillcol[-1,3:5]=array([0,speed])
+        vela=mStr.MicroStr(fillcol)
+
+
+    else:
+        if inverted ==True:  # make vela longer
+            vela_size_offset=vela_size+array([0,0,int(zoffset)*zres])
+            vela,dx=make_vela_tonda(vela_size=vela_size_offset ,R=R_vela,support_size=support_size,speed=speed,xyres=xyres,zres=zres)
+        else:
+            vela,dx=make_vela_tonda(vela_size=vela_size,R=R_vela,support_size=support_size,speed=speed,xyres=xyres,zres=zres)
+        vela.shift([0,vela_size[1]/2,feetspace])
+        support_1.shift([dx,0,0])
+        support_2.shift([dx,0,0])
+    ##
+
+    barchetta=deepcopy(dondolo_1)
+    barchetta.addStr(dondolo_2)
+#18.10    barchetta.addStr(support_1)
+# 18.10    barchetta.addStr(support_2)
+    barchetta.addStr(vela)
+
+
+
+    barchetta.shift([0,0,-0.2])
+    if inverted==True:
+        barchetta.rotate(180,'y')
+        miny= min(barchetta.Strokes[-1].coors[:,2])
+        barchetta.shift([0,0,-miny-int(zoffset)*zres])
+    return barchetta
+
+
+def make_vela_tonda(vela_size=array([1.,10.,5.]),R=10.,support_size=array([1.,1.,3.]),speed=100.,xyres=0.25,zres=0.9,scanmode=0):
+
+        S=vela_size[1]*2
+#        L=vela_size[1]*3/2
+#        assert 2*R>=L
+        rstart=R-vela_size[0]
+        tres=xyres
+#        phi_max_rad= arcsin(L/(2*R))
+        phi_max_rad= (S/(2*R))
+        vela=array([[],[],[]]).transpose()
+        Rc=((R+rstart)/2)*sin(phi_max_rad)/phi_max_rad
+        R_half=(R+rstart)/2
+        cc=0
+        for r in linspace(rstart,R,int(((R-rstart)/xyres)+1)):
+            tres=xyres
+
+            phiN=int(round(2*pi/(tres/r)))+1
+            if (scanmode==0):
+                phi=linspace(-phi_max_rad,phi_max_rad,phiN)[:-1]
+            else:
+                phi=linspace(-phi_max_rad,phi_max_rad,phiN)
+
+            y=sin(phi)*r
+            x=cos(phi)*r-Rc
+            z=x*0
+
+            if (scanmode==1):
+                    #make the segment between the last 2 points xyres shorter:
+                dr=array([diff(x[-2:]),diff(y[-2:])])
+                rabs=sqrt(sum(dr*dr))
+                rn=dr/rabs
+                dr_new=rn*(rabs-xyres)
+                x[-1]=x[-2]+dr_new[0]
+                y[-1]=y[-2]+dr_new[1]
+
+            temp=array([x,y,z]).transpose()
+
+            if cc%2==0:
+                vela=append(vela,flipud(temp),0)
+            else:
+                vela=append(vela,temp,0)
+            cc+=1
+        temp=vela.copy()
+        nlz=round(vela_size[2]/zres)
+        for i in arange(nlz-1):
+            temp[:,2]+=zres
+            temp=flipud(temp)
+            vela=append(vela,temp,0)
+
+            #calculate displacement for the supports
+        dx= R_half*sqrt(1- ((vela_size[1]/2 -support_size[1]/2)/R_half)**2)-Rc
+
+            #add the 4th and 5th columns for shutter and speed:
+        vela=append(vela,ones((len(vela),1)),1)
+        vela=append(vela,ones((len(vela),1)),1)
+        vela[-1,3:5]=[0,speed]
+        return mStr.MicroStr(vela,ipstep=None),dx
+
+def make_dondolo(rstart=10.,R=12.,speed=100.,xyres=0.25,zres=0.9,width=1.,phi_max=30.,scanmode=0,phi_min=None):
+    """use scanmode==1 to avoid shape deformation with large phires"""
+    
+    phi_max_rad=phi_max/180*pi
+
+    if phi_min is not None:
+        phi_min_rad= phi_min/180*pi
+
+    dondolo=array([[],[],[]]).transpose()
+    cc=0
+    for r in linspace(rstart,R,int(((R-rstart)/zres)+1)):
+        tres=xyres
+
+        phiN=int(round(2*phi_max_rad/(tres/r)))+1
+        if (scanmode==0):
+            if phi_min==None:
+                phi=linspace(-phi_max_rad,phi_max_rad,phiN)[:-1]
+            else:
+                phiN=int(round((pi_max_rad-phi_min_rad)/(tres/r)))+1
+
+                phi1=linspace(-phi_max_rad,phi_min_rad,phiN)[:-1]
+                phi2=linspace(phi_min_rad,phi_max_rad,phiN)[:-1]
+                phi=deepcopy(phi1)
+                
+        else:
+            phi=linspace(-phi_max_rad,phi_max_rad,phiN)
+
+        x=sin(phi)*r
+        z=R+zres/4-cos(phi)*r
+        y=z*0
+
+        if (scanmode==1):
+            #make the segment between the last 2 points xyres shorter:
+            dr=array([diff(x[-2:]),diff(y[-2:])])
+            rabs=sqrt(sum(dr*dr))
+            rn=dr/rabs
+            dr_new=rn*(rabs-xyres)
+            x[-1]=x[-2]+dr_new[0]
+            y[-1]=y[-2]+dr_new[1]
+
+        temp=array([x,y,z]).transpose()
+
+        if cc%2==0:
+            dondolo=append(dondolo,flipud(temp),0)
+        else:
+            dondolo=append(dondolo,temp,0)
+        cc+=1
+    temp=dondolo.copy()
+    nlw=round(width/xyres)
+    for i in arange(nlw-1):
+        temp[:,1]+=xyres
+        temp=flipud(temp)
+        dondolo=append(dondolo,temp,0)
+
+    #add the 4th and 5th columns for shutter and speed:
+    dondolo=append(dondolo,ones((len(dondolo),1)),1)
+    dondolo=append(dondolo,ones((len(dondolo),1)),1)
+    dondolo[-1,3:5]=[0,speed]
+
+
+    return mStr.MicroStr(dondolo,ipstep=None)
+
+
+
+def plot_Mstr(microstructure):
+    figure();microstructure.plot2D([0,1],plotmode=1)
+    figure();microstructure.plot2D([0,2],plotmode=1)
+    figure();microstructure.plot2D([1,2],plotmode=1);
+
+
+
+#### functions from Filippo and Gaston
+
+def randpos(Npos,rangeR,minD,runf=100):
+
+        X=array([0])
+        Y=array([0])
+
+        i=0
+        while (i<(Npos*runf)) and (len(X)<Npos):
+            x=2*(rand()-0.5)*rangeR
+            y=2*(rand()-0.5)*rangeR
+
+            #if the new point is outside rangeR we skip it:
+            if sqrt(x**2+y**2)>rangeR:
+                continue
+            rvec=sqrt((X-x)**2+(Y-y)**2)
+
+            #check if the new point is closer to any point than minD
+            if not (rvec<minD).any():
+                X=append(X,x)
+                Y=append(Y,y)
+            i+=1
+
+        return X,Y
+
+
+
+def placeReplicas(Nx,Ny,Dx,Dy,direction=1,shift=None):
+	    if direction==0:
+		    a,b=meshgrid(arange(0,Nx)*Dx,arange(0,Ny)*Dy)
+		    if shift==True:
+			    a[1::2]+=Dx/2.
+	    elif direction==1:
+		    b,a=meshgrid(arange(0,Ny)*Dy,arange(0,Nx)*Dx)
+		    if shift==True:
+			    b[1::2]+=Dy/2.
+	    xs=list(flatten(a))
+	    ys=list(flatten(b))
+	    #plot(xs,ys, 'x')
+	    return xs,ys
+
+
+
+
+
+
+
+'''
+    # da rimettere
+    #single beam hologram:
+    #compensate for the glass tilt:
+    #y direction:
+    dx=250.
+    dz=0.5  #usually -
+    phi=arctan2(dz,dx)/pi*180
+    invchamber.rotate(phi,'x')
+    #x direction:
+    dx=250.
+    dz=-0.4
+    phi=-arctan2(dz,dx)/pi*180
+    invchamber.rotate(phi,'y')
+'''
