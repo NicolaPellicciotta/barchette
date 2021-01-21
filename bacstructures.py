@@ -1,0 +1,661 @@
+from copy import deepcopy
+
+#full disks
+# disco_pieno=arrange_disks(radius=5.,Dx=50,Dy=50,height=3.25,full=1)
+# dumbell disks
+# dumbell_piccolo=arrange_disks(radius=5.,Dx=50,Dy=50,height=3.25) 
+# dumbell_largo=arrange_disks(radius=10.,Dx=75,Dy=50,height=3.25) 
+
+
+# barchette to try
+#barchette_tonde_M=arrange_barchette(vela_size=[2.,15.,5.],support_size=[2.,2.,2.],velatype='tonda',R_vela=12.)
+
+#barchette_tonde_L=arrange_barchette(vela_size=[2.,20.,5.],support_size=[2.,2.,2.],velatype='tonda',R_vela=15.)
+
+#barchetta_piatta_L=arrange_barchette(vela_size=[3.,20.,5.],support_size=[2.,2.,2.])
+#barchetta_piatta_M=arrange_barchette(vela_size=[3.,15.,5.],support_size=[2.,2.,2.])
+
+def randpos(Npos,rangeR,minD,runf=100):
+
+        X=array([0])
+        Y=array([0])
+
+        i=0
+        while (i<(Npos*runf)) and (len(X)<Npos):
+            x=2*(rand()-0.5)*rangeR
+            y=2*(rand()-0.5)*rangeR
+
+            #if the new point is outside rangeR we skip it:
+            if sqrt(x**2+y**2)>rangeR:
+                continue
+            rvec=sqrt((X-x)**2+(Y-y)**2)
+
+            #check if the new point is closer to any point than minD
+            if not (rvec<minD).any():
+                X=append(X,x)
+                Y=append(Y,y)
+            i+=1
+
+        return X,Y
+
+
+
+def placeReplicas(Nx,Ny,Dx,Dy,direction=1,shift=None):
+	    if direction==0:
+		    a,b=meshgrid(arange(0,Nx)*Dx,arange(0,Ny)*Dy)
+		    if shift==True:
+			    a[1::2]+=Dx/2.
+	    elif direction==1:
+		    b,a=meshgrid(arange(0,Ny)*Dy,arange(0,Nx)*Dx)
+		    if shift==True:
+			    b[1::2]+=Dy/2.
+	    xs=list(flatten(a))
+	    ys=list(flatten(b))
+	    #plot(xs,ys, 'x')
+	    return xs,ys
+
+
+exec(open("lineposgenerator.py").read())
+
+def arrange_barchette(vela_size=array([2.,10.,5.]),support_size = array([2.,2.,3.]),Dr=50,velatype=None,R_vela=10.,speed=100.,xyres=0.25,zres=0.9):
+
+
+    N= floor(150./Dr)
+    Xc,Yc=placeReplicas(N,N,Dr,Dr,direction=1,shift=False)
+    barchette=None
+
+    for i in arange(len(Xc)):
+
+        temp=make_barchetta(vela_size=vela_size,support_size=support_size,velatype=velatype,R_vela=R_vela,speed=speed,xyres=xyres,zres=zres)
+        temp.shift([Xc[i],Yc[i],0])
+        if barchette is None:
+            barchette=deepcopy(temp)
+        else:
+            barchette.addStr(temp)
+    figure();barchette.plot2D([0,1],plotmode=1)
+    figure();barchette.plot2D([0,2],plotmode=1)
+    figure();barchette.plot2D([1,2],plotmode=1);
+
+    return barchette
+
+
+
+def make_barchetta(vela_size=array([2.,10.,5.]),support_size = array([2.,2.,3.]),velatype=None,R_vela=10.,speed=100.,xyres=0.25,zres=0.9):
+
+    #structure properties
+     # width,depth,height
+
+    dondolo_size =array([10.,support_size[1],1.5])
+
+    #piezo properties
+    zoffset=2.
+
+
+
+    R_dondolo= support_size[2]+vela_size[2]+dondolo_size[2]+6.
+
+    #make dondoli
+
+    dondolo_1= make_dondolo(rstart=R_dondolo-dondolo_size[2],R=R_dondolo,speed=speed,xyres=xyres,zres=zres,width=dondolo_size[1],phi_max=30.)
+    dondolo_2=deepcopy(dondolo_1)
+    dondolo_2.shift([0,vela_size[1]-dondolo_size[1],0])
+
+    #make supports
+
+
+    nlz=round((support_size[2]+zoffset+1.)/zres)
+    nlx=round(support_size[0]/xyres)
+    nly=round(support_size[1]/xyres)
+
+
+    if velatype==None:
+        lineE=array([[-support_size[0]/2,0,zres/2],[-support_size[0]/2,support_size[1]-xyres,zres/2]]) # single line
+    else:
+        lineE=array([[-support_size[0]/2,0,-zoffset],[-support_size[0]/2,support_size[1]-xyres,-zoffset]]) # single line
+    fillcol=mStr.lineReplicate2D(lineE,nlx,xyres,0)
+    fillcol=mStr.lineReplicate2D(fillcol[:,0:3],nlz,zres,2)
+    fillcol[-1,3:5]=array([0,speed])
+    support_1=mStr.MicroStr(fillcol)
+#    fillcol.shift([0,0,-( ((int(nl)+h_corr)*zres) -(height-(zres/2)) )]) # this should place the channel at the right height
+    support_2=deepcopy(support_1)
+    support_2.shift([0,vela_size[1]-support_size[1],0])
+
+
+    #make vela
+    if velatype==None:
+
+        nlz=round((vela_size[2])/zres)
+        nlx=round(vela_size[0]/xyres)
+        nly=round(vela_size[1]/xyres)
+
+
+        lineE=array([[-vela_size[0]/2,0,support_size[2]],[-vela_size[0]/2,vela_size[1]-xyres,support_size[2]]]) # single line
+        fillcol=mStr.lineReplicate2D(lineE,nlx,xyres,0)
+        fillcol=mStr.lineReplicate2D(fillcol[:,0:3],nlz+2,zres,2)
+        fillcol[-1,3:5]=array([0,speed])
+        vela=mStr.MicroStr(fillcol)
+
+
+    elif velatype=='funnel':
+        angle_funnel=45.
+        L_funnel= (vela_size[1]-support_size[1])/sin(angle_funnel/180*pi)
+        vela=create_funnel(angle_funnel=angle_funnel,L=L_funnel,width=vela_size[0],height=vela_size[2],speed=speed,xyres=xyres,zres=zres)
+#        vela.shift([vela_size[1]/4-(vela_size[0]/2),vela_size[1]/2,support_size[2]])
+        vela.shift([(vela_size[1]-2*support_size[1])/2,(vela_size[1])/2,support_size[2]])
+
+    elif velatype=='tonda':
+        vela,dx=make_vela_tonda(vela_size=vela_size,R=R_vela,support_size=support_size,speed=speed,xyres=xyres,zres=zres)
+        vela.shift([0,vela_size[1]/2,support_size[2]])
+        support_1.shift([dx,0,0])
+        support_2.shift([dx,0,0])
+    ##
+
+    barchetta=deepcopy(dondolo_1)
+    barchetta.addStr(dondolo_2)
+    barchetta.addStr(support_1)
+    barchetta.addStr(support_2)
+    barchetta.addStr(vela)
+
+    barchetta.shift([0,0,-0.2])
+    if velatype==None:  
+        barchetta.rotate(180,'y')
+        miny= min(barchetta.Strokes[-1].coors[:,2])
+        barchetta.shift([0,0,-miny-2*zres])   
+    return barchetta
+
+
+def make_vela_tonda(vela_size=array([1.,10.,5.]),R=10.,support_size=array([1.,1.,3.]),speed=100.,xyres=0.25,zres=0.9,scanmode=0):
+
+        L=vela_size[1]*3/2
+        assert 2*R>=L
+        rstart=R-vela_size[0]
+        tres=xyres
+        phi_max_rad= arcsin(L/(2*R))
+        vela=array([[],[],[]]).transpose()
+        Rc=((R+rstart)/2)*sin(phi_max_rad)/phi_max_rad
+        R_half=(R+rstart)/2
+        cc=0
+        for r in linspace(rstart,R,int(((R-rstart)/xyres)+1)):
+            tres=xyres
+
+            phiN=int(round(2*pi/(tres/r)))+1
+            if (scanmode==0):
+                phi=linspace(-phi_max_rad,phi_max_rad,phiN)[:-1]
+            else:
+                phi=linspace(-phi_max_rad,phi_max_rad,phiN)
+
+            y=sin(phi)*r
+            x=cos(phi)*r-Rc
+            z=x*0
+
+            if (scanmode==1):
+                    #make the segment between the last 2 points xyres shorter:
+                dr=array([diff(x[-2:]),diff(y[-2:])])
+                rabs=sqrt(sum(dr*dr))
+                rn=dr/rabs
+                dr_new=rn*(rabs-xyres)
+                x[-1]=x[-2]+dr_new[0]
+                y[-1]=y[-2]+dr_new[1]
+
+            temp=array([x,y,z]).transpose()
+
+            if cc%2==0:
+                vela=append(vela,flipud(temp),0)
+            else:
+                vela=append(vela,temp,0)
+            cc+=1
+        temp=vela.copy()
+        nlz=round(vela_size[2]/zres)
+        for i in arange(nlz-1):
+            temp[:,2]+=zres
+            temp=flipud(temp)
+            vela=append(vela,temp,0)
+
+            #calculate displacement for the supports
+        dx= R_half*sqrt(1- ((vela_size[1]/2 -support_size[1]/2)/R_half)**2)-Rc
+
+            #add the 4th and 5th columns for shutter and speed:
+        vela=append(vela,ones((len(vela),1)),1)
+        vela=append(vela,ones((len(vela),1)),1)
+        vela[-1,3:5]=[0,speed]
+        return mStr.MicroStr(vela,ipstep=None),dx
+
+def make_dondolo(rstart=10.,R=12.,speed=100.,xyres=0.25,zres=0.9,width=1.,phi_max=30.,scanmode=0):
+    """use scanmode==1 to avoid shape deformation with large phires"""
+
+    phi_max_rad=phi_max/180*pi
+    dondolo=array([[],[],[]]).transpose()
+    cc=0
+    for r in linspace(rstart,R,int(((R-rstart)/zres)+1)):
+        tres=xyres
+
+        phiN=int(round(2*pi/(tres/r)))+1
+        if (scanmode==0):
+            phi=linspace(-phi_max_rad,phi_max_rad,phiN)[:-1]
+        else:
+            phi=linspace(-phi_max_rad,phi_max_rad,phiN)
+
+        x=sin(phi)*r
+        z=R+zres/4-cos(phi)*r
+        y=z*0
+
+        if (scanmode==1):
+            #make the segment between the last 2 points xyres shorter:
+            dr=array([diff(x[-2:]),diff(y[-2:])])
+            rabs=sqrt(sum(dr*dr))
+            rn=dr/rabs
+            dr_new=rn*(rabs-xyres)
+            x[-1]=x[-2]+dr_new[0]
+            y[-1]=y[-2]+dr_new[1]
+
+        temp=array([x,y,z]).transpose()
+
+        if cc%2==0:
+            dondolo=append(dondolo,flipud(temp),0)
+        else:
+            dondolo=append(dondolo,temp,0)
+        cc+=1
+    temp=dondolo.copy()
+    nlw=round(width/xyres)
+    for i in arange(nlw-1):
+        temp[:,1]+=xyres
+        temp=flipud(temp)
+        dondolo=append(dondolo,temp,0)
+
+    #add the 4th and 5th columns for shutter and speed:
+    dondolo=append(dondolo,ones((len(dondolo),1)),1)
+    dondolo=append(dondolo,ones((len(dondolo),1)),1)
+    dondolo[-1,3:5]=[0,speed]
+
+
+    return mStr.MicroStr(dondolo,ipstep=None)
+
+
+
+
+
+
+def create_funnel(angle_funnel=45.,L=4.,height=1.,width=2.,speed=100,xyres=0.25,zres=0.9):
+
+    nlz=round((height)/zres)+1
+    nlx=round(width/xyres)
+    cos_L= -L*cos(angle_funnel*pi/180)
+    sin_L = L*sin(angle_funnel*pi/180)
+    lineE=array([[cos_L,sin_L,0],[0,0,0],[cos_L,-sin_L,0]])
+    lineE= mStr.lineReplicate2D(lineE,nlx,xyres,0)
+#    lineE2= concatenate((lineE,lineE[::-1]+[xyres,0,0])) #,lineE+[2*xyres,0,0]))
+    funnel=mStr.lineReplicate2D(lineE[:,0:3],nlz,zres,2)
+    funnel[-1,3:5]=array([0,speed])
+    funnel=mStr.MicroStr(funnel)
+
+    return funnel
+
+
+
+
+#----------------------------------------------------------------
+################################################################
+################################################################
+############# NINJAAAAAA ######################################
+##############################################################
+#----------------------------------------------------
+
+
+# to make disks and dumbbell around 10 and 35 um in diameter
+def arrange_funnels_disks(radius=5.,height=3.5,angle_funnel=45.,spacing=1.5,L_funnel=3., Dx=45,Dy=45,xyres=0.25,zres=0.9,speed=100.):
+
+    z_below =-2
+    height_standing=1.5
+
+    Nx = ceil(200./ Dx)
+    Ny = ceil(200./ Dy)
+#    scaling = array([1.,0.7,0.5,0.3,0.2])
+    if Ny*Dy>250:
+        print('distanza tra strutture deve essere inferiore')
+#    Ny_max= ceil(200./Dy)
+    Xc,Yc=placeReplicas(Nx,Ny,Dx,Dy,direction=1,shift=False)
+    mic_structures=None
+
+    dumbbell_funnel= create_dumbbell_funnel(radius=radius,height=height,height_standing=height_standing,angle_funnel=angle_funnel,spacing=spacing, plot_visible=0,speed=speed,xyres=xyres,L_funnel=L_funnel,zres=zres)
+    for i in arange(len(Xc)):
+        temp=deepcopy(dumbbell_funnel)
+        temp.shift([Xc[i],Yc[i],0])
+        if mic_structures is None:
+            mic_structures=deepcopy(temp)
+        else:
+            mic_structures.addStr(temp)
+
+    figure();mic_structures.plot2D(plotmode=1)
+    figure();mic_structures.plot2D([1,2]);
+
+    return mic_structures
+
+
+
+def create_dumbbell_funnel(radius=10.,height=3.5,height_standing=1.5,L_funnel=2., angle_funnel=45.,spacing=0.1,plot_visible=0,speed=100,xyres=0.25,zres=0.9):
+    '''
+        --               --
+        -------------------
+        --               --
+    '''
+
+    z_below =-2
+#    angle_funnel=45.
+
+### create the base (sligltly higher for glass attachemnt)
+
+    disco_base=displace_funnel_circle(radius=radius,angle_funnel=angle_funnel,height_funnel=(height_standing-z_below),L_funnel=L_funnel,spacing=spacing, plot_visible=0,speed=speed,xyres=xyres,zres=zres)
+    disco_base.shift([0,0,z_below])
+    dumbbell= deepcopy(disco_base)
+
+### create the central disk
+    height_disk= height-2*height_standing
+    nl=floor((height_disk)/zres)
+    if remainder((height_disk),zres)!=0:
+        nl+=1
+    disco=mStr.diskStr(0,0,0,radius,speed,xyres,zres,nl,Rmin= 0.75)
+    disco.shift([0,0,dumbbell.Strokes[1].coors[:,2].max()+zres])
+    dumbbell.addStr(disco)
+
+### create top
+
+    disco_top=displace_funnel_circle(radius=radius,angle_funnel=angle_funnel,height_funnel=(height_standing),L_funnel=L_funnel,spacing=spacing, plot_visible=0,speed=speed,xyres=xyres,zres=zres)
+    disco_top.shift([0,0,dumbbell.Strokes[-1].coors[:,2].max()+zres])
+    dumbbell.addStr(disco_top)
+
+    if plot_visible!=0:
+        figure(1);dumbbell.plot2D(plotmode=1)
+        figure(2); dumbbell.plot2D([1,2]);
+
+
+    return dumbbell
+
+
+#### displace funnels in a circle
+def displace_funnel_circle(radius=10.,angle_funnel=45.,height_funnel=1.5,L_funnel=4.,spacing=1.5, plot_visible=0,speed=100,xyres=0.25,zres=0.9):
+
+#    spacing = 1.5
+
+    L_openedge= 2.*L_funnel*sin(angle_funnel*pi/180.)
+    L_altezza = L_funnel*cos(angle_funnel*pi/180.)
+    r = radius -L_altezza
+
+    N_funnel = floor( 2*pi*radius/(L_openedge+spacing) )
+    delta_angle = 2*pi/N_funnel
+
+    funnel_disk=None
+    for i in arange(N_funnel):
+        temp = create_funnel(angle_funnel=angle_funnel,L=L_funnel,height=height_funnel,speed=speed,xyres=xyres,zres=zres,width=0.5)
+        temp_angle = i*delta_angle
+        temp.rotate(180 ,'z')
+        temp.rotate(temp_angle*180/pi ,'z')
+        temp.shift([r*cos(temp_angle) , r*sin(temp_angle) , 0 ])
+
+        if funnel_disk ==None:
+            funnel_disk=deepcopy(temp)
+            funnel_disk.addStr(temp)
+
+        else:
+            funnel_disk.addStr(temp)
+
+
+    if plot_visible!=0:
+        figure(1);funnel_disk.plot2D(plotmode=1)
+        figure(2); funnel_disk.plot2D([1,2]);
+
+
+
+    return funnel_disk
+    ### create all funnels with thi angle on a circonferenza radius
+
+
+
+    return funnels
+
+
+
+
+
+
+################################################################
+################################################################
+########### DUMBELL CLASSICO ######################################
+
+
+
+
+# to make disks and dumbbell around 10 and 35 um in diameter
+def arrange_disks(radius=5.,height=3.5,Dx=45,Dy=45,height_standing=1.,xyres=0.25,zres=0.9,speed=100.,full=None):
+
+#    z_below =-2
+
+    Nx = ceil(200./ Dx)
+    Ny = 4
+    size_standing=xyres
+#    scaling = array([1.,0.7,0.5,0.3,0.2])
+    if Ny*Dy>250:
+        print('distanza tra strutture deve essere inferiore')
+        return
+#    Ny_max= ceil(200./Dy)
+    Xc,Yc=placeReplicas(Nx,Ny,Dx,Dy,direction=1,shift=False)
+    mic_structures=None
+
+    for i in arange(len(Xc)):
+        if full==None:
+            temp=create_dumbbell_disk(radius=radius,height=height,height_standing=height_standing, plot_visible=0,speed=speed,xyres=xyres)
+        else:
+            nlz=floor((height)/zres)
+            if remainder((height_standing),zres)>0.5:
+                nlz+=1
+            temp= mStr.diskStr(0,0,0,radius,speed,xyres,zres,nlz+2,Rmin= 0.75)
+            temp.shift([0,0,-2*zres+zres/2])
+        temp.shift([Xc[i],Yc[i],0])
+        if mic_structures is None:
+            mic_structures=deepcopy(temp)
+        else:
+            mic_structures.addStr(temp)
+
+    figure();mic_structures.plot2D([1,2],plotmode=1);
+    figure();mic_structures.plot2D([0,2],plotmode=1);
+    figure();mic_structures.plot2D([0,1],plotmode=1);
+
+    return mic_structures
+
+
+
+def create_dumbbell_disk(radius=5.,height=3.5,height_standing=1.5,plot_visible=0,speed=100,xyres=0.25,zres=0.9):
+    '''
+        --               --
+        -------------------
+        --               --
+    '''
+    z_below =2
+    nl_below = 2.
+### create the base (sligltly higher for glass attachemnt)
+    size_standing=xyres
+
+    nlz=floor((height_standing)/zres)
+    if remainder((height_standing),zres)>0.5:
+        nlz+=1
+    disco_base=mStr.diskStr(0,0,0,radius,speed,xyres,zres,nlz+nl_below,Rmin= radius-size_standing)
+    disco_base.shift([0,0,-nl_below*zres+zres/2])
+    dumbbell= deepcopy(disco_base)
+
+
+### create the central disk
+    height_disk= height-2*height_standing
+    nl=floor((height_disk)/zres)
+    if remainder((height_disk),zres)!=0:
+        nl+=1
+    disco=mStr.diskStr(0,0,0,radius,speed,xyres,zres,1,Rmin= 0.75)
+    disco.shift([0,0,dumbbell.Strokes[0].coors[:,2].max()+zres])
+    dumbbell.addStr(disco)
+
+### create top
+
+    disco_top=mStr.diskStr(0,0,0,radius,speed,xyres,zres,nlz,Rmin= radius-size_standing)
+    disco_top.shift([0,0,dumbbell.Strokes[1].coors[:,2].max()+zres])
+    dumbbell.addStr(disco_top)
+
+    if plot_visible!=0:
+        figure(1);dumbbell.plot2D(plotmode=1)
+        figure(2); dumbbell.plot2D([1,2]);
+
+
+    return dumbbell
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# to make disks and dumbbell around 10 and 35 um in diameter
+def arrange_large_disks(radius=20.,height=3.,Dx=60,Dy=60,height_standing=1.,size_standing=2.):
+
+    speed=100.
+    xyres=0.25
+    zres=xyres*2
+    z_below =-2
+
+    Nx = ceil(200./ Dx)
+    Ny = 2
+#    scaling = array([1.,0.7,0.5,0.3,0.2])
+    if Ny*Dy>250:
+        print('distanza tra strutture deve essere inferiore')
+#    Ny_max= ceil(200./Dy)
+    Xc,Yc=placeReplicas(Nx,Ny,Dx,Dy,direction=1,shift=False)
+    mic_structures=None
+
+    for i in arange(len(Xc)):
+        kk=int(floor(i/Nx))
+        if kk==0:
+            temp=create_dumbbell_disk(radius=radius,height=height,height_standing=height_standing,size_standing=size_standing, plot_visible=0,speed=speed,xyres=xyres)
+        else:
+            nl= int((height-z_below)/zres +1)
+            temp=mStr.diskStr(0,0,0,radius,speed,xyres,zres,nl,Rmin= 0.75)
+
+        temp.shift([Xc[i],Yc[i],z_below])
+        if mic_structures is None:
+            mic_structures=deepcopy(temp)
+        else:
+            mic_structures.addStr(temp)
+
+    figure();mic_structures.plot2D(plotmode=1)
+    figure();mic_structures.plot2D([1,2]);
+
+    return mic_structures
+
+
+
+
+
+
+
+
+
+def create_square(height=5.,size=10.,plot_visible=0):
+
+    speed=100.
+    power= 8 # Mw
+    #(nicola) with 8Mw structure either detach or do ot polymerise, use 10Mw instead
+
+    xyres=0.25
+    zres=2*xyres;
+    z_below =-2
+    square_x=  size
+    square_y= size
+    nl=(square_x)/(2*xyres)+1
+    lineE=array([[-square_x/2,-square_y/2,z_below],[-square_x/2,+square_y/2,z_below]])
+    fillcol=mStr.lineReplicate2D(lineE,nl,zres,0)
+    fillcol[-1,3:5]=array([0,speed])
+    square_mst=mStr.MicroStr(fillcol)
+
+
+    height_eff = height-z_below
+    nl= int((height_eff)/(zres)+1)
+
+    for i in range(1,nl):
+#        square_x+=i*zres+2*xyres   #this is for making the square with growing size
+#        square_y+=i*zres+2*xyres
+        nl=(square_x)/(2*xyres)+1
+        lineE=array([[-square_x/2,-square_y/2,z_below+ i*zres],[-square_x/2,+square_y/2,z_below+i*zres]])
+        fillcol=mStr.lineReplicate2D(lineE,nl,zres,0)
+        fillcol[-1,3:5]=array([0,speed])
+        square_mst.addStr(mStr.MicroStr(fillcol))
+
+    if plot_visible!=0:
+        figure();square_mst.plot2D(plotmode=1)
+        figure(); square_mst.plot2D([1,2]);
+
+    return square_mst
+
+
+
+def arrange_squares(Dx=40,Dy=40):
+
+
+    Nx = ceil(200./ Dx)
+    Ny = 4
+    scaling = array([1.,0.7,0.5,0.3,0.2])
+    if Ny*Dy>250:
+        print('distanza tra strutture deve essere inferiore')
+#    Ny_max= ceil(200./Dy)
+    Xc,Yc=placeReplicas(Nx,Ny,Dx,Dy,direction=1,shift=False)
+    mic_structures=None
+    for i in arange(len(Xc)):
+        kk=int(floor(i/Nx))
+        square_mst =create_square(height=(5*scaling[kk]),size=(10*scaling[kk]),plot_visible=0)
+        print(scaling[kk])
+        temp=deepcopy(square_mst)
+    #    temp.rotate(theta[i]/pi*180,'z')
+        temp.shift([Xc[i],Yc[i],0])
+        if mic_structures is None:
+            mic_structures=deepcopy(temp)
+        else:
+            mic_structures.addStr(temp)
+
+    figure();mic_structures.plot2D(plotmode=1)
+    figure();mic_structures.plot2D([1,2]);
+
+    return mic_structures
+
+
+
+
+
+
+
+
+
+
+
+
+    '''
+    # da rimettere
+    #single beam hologram:
+    #compensate for the glass tilt:
+    #y direction:
+    dx=250.
+    dz=0.5  #usually -
+    phi=arctan2(dz,dx)/pi*180
+    invchamber.rotate(phi,'x')
+    #x direction:
+    dx=250.
+    dz=-0.4
+    phi=-arctan2(dz,dx)/pi*180
+    invchamber.rotate(phi,'y')
+    '''
